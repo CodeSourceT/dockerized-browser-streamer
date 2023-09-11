@@ -2,16 +2,12 @@ FROM ubuntu:20.04
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ENV DEBIAN_FRONTEND noninteractive
-
-RUN groupadd --gid 1000 user \
-  && useradd --uid 1000 --gid user --shell /bin/bash --create-home user
+ARG DEBIAN_FRONTEND=noninteractive
 
 # Tini init
-ARG TINI_VERSION=v0.19.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-RUN chmod +x /tini
-ENTRYPOINT ["/tini", "--"]
+#ARG TINI_VERSION=v0.19.0
+#ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+#RUN chmod +x /tini
 
 RUN /usr/bin/apt-get update && \
 	/usr/bin/apt-get upgrade -y && \
@@ -36,21 +32,24 @@ RUN /usr/bin/apt-get update && \
   python3 \
   python3-pip
 
-RUN echo 'user ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers
-
-RUN wget -O /tmp/chromedriver.zip http://chromedriver.storage.googleapis.com/`curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE`/chromedriver_linux64.zip
-RUN unzip /tmp/chromedriver.zip chromedriver -d /usr/local/bin/
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+RUN sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+RUN apt-get -y update
+RUN apt-get install -y google-chrome-stable
+RUN wget -O /tmp/chromedriver.zip https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/116.0.5845.96/linux64/chromedriver-linux64.zip
+RUN unzip /tmp/chromedriver.zip chromedriver-linux64/chromedriver -d /usr/local/bin/
 
 # For debugging with VNC
 EXPOSE 5900
 
-USER user
+WORKDIR /
 
-WORKDIR /home/user/app
+RUN mkdir /output && chmod 777 /output
 
 COPY requirements.txt .
 RUN pip3 install -r requirements.txt
 
 COPY . .
 
-CMD [ "./entrypoint.sh" ]
+#ENTRYPOINT ["/tini", "--", "bash", "./entrypoint.sh"]
+CMD ["./entrypoint.sh"]
