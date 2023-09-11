@@ -20,30 +20,26 @@ RUN /usr/bin/apt-get update && \
   sudo \
   pulseaudio \
   xvfb \
-  firefox \
   libnss3-tools \
   ffmpeg \
   xdotool \
   unzip \
-  x11vnc \
   libfontconfig \
   libfreetype6 \
   xfonts-cyrillic \
   xfonts-scalable \
   fonts-liberation \
   fonts-ipafont-gothic \
-  fonts-wqy-zenhei
+  fonts-wqy-zenhei \
+  wget \
+  libgconf-2-4 \
+  python3 \
+  python3-pip
 
 RUN echo 'user ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-# Bundle Firefox plugin to enable H264 codec support for WebRTC
-RUN curl -s http://ciscobinary.openh264.org/openh264-linux64-2e1774ab6dc6c43debb0b5b628bdf122a391d521.zip -o /openh264-1.8.1.1.zip && \
-    chmod a+r /openh264-1.8.1.1.zip
-
-# Install chrome as an alternative (chromium is harder to install as it requires snap daemon on ubuntu)
-RUN curl -sSL https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o chrome.deb && \
-  apt-get install ./chrome.deb -y && \
-  rm -f chrome.deb
+RUN wget -O /tmp/chromedriver.zip http://chromedriver.storage.googleapis.com/`curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE`/chromedriver_linux64.zip
+RUN unzip /tmp/chromedriver.zip chromedriver -d /usr/local/bin/
 
 # For debugging with VNC
 EXPOSE 5900
@@ -51,6 +47,9 @@ EXPOSE 5900
 USER user
 
 WORKDIR /home/user/app
+
+COPY requirements.txt .
+RUN pip3 install -r requirements.txt
 
 COPY . .
 
